@@ -59,28 +59,40 @@ class MatchReminderReceiver : BroadcastReceiver() {
 
                     // Persist an in-app MATCH_REMINDER notification containing Room ID & Password
                     val inAppMessage = if (liveRoomId.isNotBlank() && liveRoomPassword.isNotBlank()) {
-                        "Match starts in 10 minutes! Room ID: $liveRoomId | Password: $liveRoomPassword"
+                        "Starts in 10 minutes ($scheduleLabel) • Room ID: $liveRoomId | Password: $liveRoomPassword"
                     } else {
-                        "Match starts in 10 minutes ($scheduleLabel). Open Room Details once Admin publishes credentials."
-                    }
+                        "Starts in 10 minutes ($scheduleLabel). Open Room Details once Admin publishes Room ID & Password."
+                    }.take(400)
                     withTimeoutOrNull(4000L) {
-                        db.collection("users")
+                        val notifRef = db.collection("users")
                             .document(user.uid)
                             .collection("notifications")
                             .document("reminder_$tournamentId")
-                            .set(
+                        val existing = notifRef.get().await()
+                        val shouldWrite = if (existing.exists()) {
+                            if (existing.getString("message").orEmpty() != inAppMessage) {
+                                notifRef.delete().await()
+                                true
+                            } else {
+                                false
+                            }
+                        } else {
+                            true
+                        }
+                        if (shouldWrite) {
+                            notifRef.set(
                                 mapOf(
                                     "userId" to user.uid,
                                     "title" to "10m Alert: $title".take(100),
-                                    "message" to inAppMessage.take(400),
+                                    "message" to inAppMessage,
                                     "category" to NotificationCategory.MATCH_REMINDER.wireValue,
                                     "tournamentId" to tournamentId,
                                     "readStatus" to false,
                                     "createdAt" to FieldValue.serverTimestamp(),
                                     "updatedAt" to FieldValue.serverTimestamp()
                                 )
-                            )
-                            .await()
+                            ).await()
+                        }
                     }
                 }
 

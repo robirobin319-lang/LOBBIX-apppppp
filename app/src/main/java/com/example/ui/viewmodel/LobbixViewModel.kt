@@ -150,9 +150,16 @@ class LobbixViewModel(
                 val tourneyById = allTourneys.associateBy { it.id }
 
                 val credsMap = mutableMapOf<String, RoomCredentials?>()
+                val startMillisByTourney = mutableMapOf<String, Long?>()
                 joinedList.forEach { record ->
                     val tourney = tourneyById[record.tournamentId]
-                    val shouldFetchCreds = tourney == null || tourney.roomPublished
+                    val startMillis = tourney?.let {
+                        MatchReminderScheduler.resolveStableStartTimeMillis(appContext, it, now)
+                    }
+                    startMillisByTourney[record.tournamentId] = startMillis
+                    val inWindow = startMillis != null &&
+                        MatchScheduleParser.isInTenMinutePreStartWindow(startMillis, now)
+                    val shouldFetchCreds = tourney == null || tourney.roomPublished || inWindow
                     credsMap[record.tournamentId] = if (shouldFetchCreds) {
                         repository.fetchRoomCredentialsOnce(record.tournamentId)
                     } else {
@@ -169,11 +176,7 @@ class LobbixViewModel(
 
                 joinedList.forEach { record ->
                     val tourney = tourneyById[record.tournamentId] ?: return@forEach
-                    val startMillis = MatchScheduleParser.resolveStartTimeMillis(
-                        scheduleLabel = tourney.scheduleLabel,
-                        explicitStartMillis = tourney.startTimeMillis,
-                        nowMillis = now
-                    )
+                    val startMillis = startMillisByTourney[record.tournamentId]
                     if (startMillis != null &&
                         MatchScheduleParser.isInTenMinutePreStartWindow(startMillis, now)
                     ) {

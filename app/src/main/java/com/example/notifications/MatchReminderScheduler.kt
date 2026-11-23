@@ -33,6 +33,18 @@ object MatchScheduleParser {
     private val TIME_12H_REGEX = Regex("""(\d{1,2}):(\d{2})\s*(AM|PM)""", RegexOption.IGNORE_CASE)
     private val TIME_24H_REGEX = Regex("""\b(\d{1,2}):(\d{2})\b""")
     private val IN_MINUTES_REGEX = Regex("""\bin\s+(\d{1,3})\s*min""", RegexOption.IGNORE_CASE)
+    private val DAY_MONTH_REGEX = Regex("""\b(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b""", RegexOption.IGNORE_CASE)
+    private val MONTH_DAY_REGEX = Regex("""\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2})\b""", RegexOption.IGNORE_CASE)
+
+    private val MONTH_INDEX = mapOf(
+        "jan" to Calendar.JANUARY, "feb" to Calendar.FEBRUARY, "mar" to Calendar.MARCH,
+        "apr" to Calendar.APRIL, "may" to Calendar.MAY, "jun" to Calendar.JUNE,
+        "jul" to Calendar.JULY, "aug" to Calendar.AUGUST, "sep" to Calendar.SEPTEMBER,
+        "oct" to Calendar.OCTOBER, "nov" to Calendar.NOVEMBER, "dec" to Calendar.DECEMBER
+    )
+
+    fun isRelativeMinutesSchedule(scheduleLabel: String): Boolean =
+        IN_MINUTES_REGEX.containsMatchIn(scheduleLabel.trim())
 
     fun resolveStartTimeMillis(
         scheduleLabel: String,
@@ -58,6 +70,27 @@ object MatchScheduleParser {
         val cal = Calendar.getInstance(tz).apply { timeInMillis = nowMillis }
         if (trimmed.contains("Tomorrow", ignoreCase = true)) {
             cal.add(Calendar.DAY_OF_YEAR, 1)
+        } else {
+            val dm = DAY_MONTH_REGEX.find(trimmed)
+            val md = MONTH_DAY_REGEX.find(trimmed)
+            when {
+                dm != null -> {
+                    val day = dm.groupValues[1].toIntOrNull()
+                    val month = MONTH_INDEX[dm.groupValues[2].lowercase(Locale.US)]
+                    if (day != null && month != null) {
+                        cal.set(Calendar.MONTH, month)
+                        cal.set(Calendar.DAY_OF_MONTH, day)
+                    }
+                }
+                md != null -> {
+                    val month = MONTH_INDEX[md.groupValues[1].lowercase(Locale.US)]
+                    val day = md.groupValues[2].toIntOrNull()
+                    if (day != null && month != null) {
+                        cal.set(Calendar.MONTH, month)
+                        cal.set(Calendar.DAY_OF_MONTH, day)
+                    }
+                }
+            }
         }
 
         val match12 = TIME_12H_REGEX.find(trimmed)
@@ -221,7 +254,34 @@ object MatchReminderScheduler {
     private const val PREFS_NAME = "lobbix_match_reminders"
     private const val KEY_ARMED_IDS = "armed_ids"
     private const val KEY_DISPATCHED_SIGNATURES = "dispatched_sigs"
+    private const val KEY_REL_ANCHOR_PREFIX = "rel_anchor_"
     private const val TAG = "MatchReminderSched"
+
+    fun resolveStableStartTimeMillis(
+        context: Context,
+        tournament: Tournament,
+        nowMillis: Long = System.currentTimeMillis()
+    ): Long? {
+        if (tournament.startTimeMillis > 0L) return tournament.startTimeMillis
+        if (!MatchScheduleParser.isRelativeMinutesSchedule(tournament.scheduleLabel)) {
+            return MatchScheduleParser.resolveStartTimeMillis(
+                scheduleLabel = tournament.scheduleLabel,
+                explicitStartMillis = 0L,
+                nowMillis = nowMillis
+            )
+        }
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val anchorKey = "$KEY_REL_ANCHOR_PREFIX${tournament.id}_${tournament.scheduleLabel.trim()}"
+        val saved = prefs.getLong(anchorKey, 0L)
+        if (saved > 0L) return saved
+        val resolved = MatchScheduleParser.resolveStartTimeMillis(
+            scheduleLabel = tournament.scheduleLabel,
+            explicitStartMillis = 0L,
+            nowMillis = nowMillis
+        ) ?: return null
+        prefs.edit().putLong(anchorKey, resolved).apply()
+        return resolved
+    }
 
     fun scheduleForTournament(
         context: Context,
@@ -234,9 +294,9 @@ object MatchReminderScheduler {
             return ReminderScheduleResult.Completed
         }
 
-        val startMillis = MatchScheduleParser.resolveStartTimeMillis(
-            scheduleLabel = tournament.scheduleLabel,
-            explicitStartMillis = tournament.startTimeMillis,
+        val startMillis = resolveStableStartTimeMillis(
+            context = context,
+            tournament = tournament,
             nowMillis = nowMillis
         ) ?: return ReminderScheduleResult.UnknownSchedule
 

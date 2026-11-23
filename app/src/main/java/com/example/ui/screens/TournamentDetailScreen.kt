@@ -55,6 +55,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -71,6 +72,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.R
 import com.example.model.GameMode
 import com.example.model.PlayerProfile
@@ -79,6 +83,7 @@ import com.example.model.Tournament
 import com.example.model.TournamentStatus
 import com.example.model.UiState
 import com.example.notifications.MatchNotificationHelper
+import com.example.notifications.MatchReminderScheduler
 import com.example.notifications.MatchScheduleParser
 import com.example.ui.components.CenteredResponsiveColumn
 import com.example.ui.components.StatusPill
@@ -124,6 +129,16 @@ fun TournamentDetailScreen(
 
     var notifPermissionGranted by remember {
         mutableStateOf(MatchNotificationHelper.hasNotificationPermission(context))
+    }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, context) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                notifPermissionGranted = MatchNotificationHelper.hasNotificationPermission(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
     var pendingAlertAfterGrant by remember { mutableStateOf<Pair<Tournament, RoomCredentials?>?>(null) }
 
@@ -371,8 +386,9 @@ fun TournamentDetailScreen(
                                     } else {
                                         Button(
                                             onClick = {
-                                                val needsPlayerIdentity = profile?.freeFireId.isNullOrBlank() ||
-                                                    profile?.inGameName.isNullOrBlank()
+                                                val needsPlayerIdentity = profile == null ||
+                                                    profile.freeFireId.isBlank() ||
+                                                    profile.inGameName.isBlank()
                                                 val needsTeamTag = tournament.modeEnum == GameMode.DUO ||
                                                     tournament.modeEnum == GameMode.SQUAD
                                                 if (needsPlayerIdentity || needsTeamTag) {
@@ -734,10 +750,11 @@ private fun PreMatchReminderCard(
     onEnableNotifications: () -> Unit,
     onSendAlertNow: () -> Unit
 ) {
-    val startMillis = remember(tournament.scheduleLabel, tournament.startTimeMillis) {
-        MatchScheduleParser.resolveStartTimeMillis(
-            scheduleLabel = tournament.scheduleLabel,
-            explicitStartMillis = tournament.startTimeMillis
+    val context = LocalContext.current
+    val startMillis = remember(tournament.id, tournament.scheduleLabel, tournament.startTimeMillis) {
+        MatchReminderScheduler.resolveStableStartTimeMillis(
+            context = context,
+            tournament = tournament
         )
     }
     val triggerAtMillis = startMillis?.let { MatchScheduleParser.reminderTriggerMillis(it) }
@@ -829,7 +846,7 @@ private fun PreMatchReminderCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = GoldTrophy
                 )
-                if (hasCredentials && roomCredentials != null) {
+                if (roomCredentials != null && hasCredentials) {
                     Text(
                         text = "Room ID: ${roomCredentials.roomId}  |  Pass: ${roomCredentials.roomPassword}",
                         style = MaterialTheme.typography.titleSmall,
