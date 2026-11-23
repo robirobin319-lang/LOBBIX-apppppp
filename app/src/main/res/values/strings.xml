@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">LOBBIX</string>
+    <string name="brand_tagline">FREE FIRE ESPORTS ARENA</string>
+    <string name="room_locked_hint">Join this tournament to unlock the live Room ID &amp; Password published by the LOBBIX Admin Panel.</string>
+    <string name="room_waiting_hint">You are registered! Waiting for the LOBBIX Admin Panel to publish Room ID &amp; Password.</string>
+    <string name="deposit_pending_hint">Deposits are verified manually by Admin using your UTR &amp; payment screenshot. Balance updates only after approval.</string>
+    <string name="withdraw_pending_hint">Requested amount is locked immediately while Pending and automatically refunded if rejected by Admin.</string>
+</resources>

@@ -1,0 +1,384 @@
+{
+  "entities": {
+    "PlayerProfile": {
+      "title": "PlayerProfile",
+      "description": "Authenticated Free Fire player profile and esports career stats.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID of the player." },
+        "fullName": { "type": "string", "description": "Player display name." },
+        "inGameName": { "type": "string", "description": "Player Free Fire In-Game Name (IGN)." },
+        "email": { "type": "string", "description": "Player Google/Gmail address." },
+        "phone": { "type": "string", "description": "Optional mobile contact number." },
+        "freeFireId": { "type": "string", "description": "Player Free Fire numeric UID." },
+        "freeFireLevel": { "type": "integer", "description": "Player Free Fire account level." },
+        "avatarPreset": { "type": "string", "description": "Selected tactical avatar key." },
+        "walletBalance": { "type": "integer", "description": "Available numeric wallet balance starting at 0." },
+        "lockedBalance": { "type": "integer", "description": "Balance locked in pending withdrawal requests." },
+        "lastWithdrawalId": { "type": "string", "description": "Reference ID of the latest withdrawal transaction." },
+        "totalMatches": { "type": "integer", "description": "Total matches played." },
+        "totalWins": { "type": "integer", "description": "Total Booyah wins." },
+        "totalKills": { "type": "integer", "description": "Total career eliminations." },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId",
+        "fullName",
+        "inGameName",
+        "email",
+        "freeFireId",
+        "freeFireLevel",
+        "avatarPreset",
+        "walletBalance",
+        "lockedBalance",
+        "lastWithdrawalId",
+        "totalMatches",
+        "totalWins",
+        "totalKills",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "PaymentConfig": {
+      "title": "PaymentConfig",
+      "description": "Admin UPI payment configuration displayed in Wallet Add Money.",
+      "type": "object",
+      "properties": {
+        "upiId": { "type": "string" },
+        "merchantName": { "type": "string" },
+        "instruction": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["upiId", "merchantName", "instruction", "updatedAt"]
+    },
+    "DepositRequest": {
+      "title": "DepositRequest",
+      "description": "Player wallet deposit request awaiting admin verification.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "amount": { "type": "integer" },
+        "utrNumber": { "type": "string" },
+        "adminUpiId": { "type": "string" },
+        "screenshotName": { "type": "string" },
+        "screenshotPreviewBase64": { "type": "string" },
+        "status": { "type": "string", "enum": ["Pending", "Approved", "Rejected"] },
+        "adminNote": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId",
+        "amount",
+        "utrNumber",
+        "adminUpiId",
+        "screenshotName",
+        "screenshotPreviewBase64",
+        "status",
+        "adminNote",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "WithdrawalRequest": {
+      "title": "WithdrawalRequest",
+      "description": "Player wallet withdrawal request with locked balance and auto-refund support.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "upiId": { "type": "string" },
+        "amount": { "type": "integer" },
+        "status": { "type": "string", "enum": ["Pending", "Approved", "Rejected"] },
+        "refundProcessed": { "type": "boolean" },
+        "adminNote": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId",
+        "upiId",
+        "amount",
+        "status",
+        "refundProcessed",
+        "adminNote",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Tournament": {
+      "title": "Tournament",
+      "description": "Public Free Fire tournament metadata published by Admin Panel.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "gameName": { "type": "string", "enum": ["Free Fire"] },
+        "gameMode": { "type": "string", "enum": ["SOLO", "DUO", "SQUAD", "LONE_WOLF", "1V1_MATCH"] },
+        "mapName": { "type": "string" },
+        "scheduleLabel": { "type": "string" },
+        "entryFee": { "type": "integer" },
+        "prizePool": { "type": "integer" },
+        "perKillReward": { "type": "integer" },
+        "maxPlayers": { "type": "integer" },
+        "joinedCount": { "type": "integer" },
+        "status": { "type": "string", "enum": ["UPCOMING", "LIVE", "COMPLETED"] },
+        "roomPublished": { "type": "boolean" },
+        "rulesSummary": { "type": "string" },
+        "bannerKey": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "title",
+        "gameName",
+        "gameMode",
+        "mapName",
+        "scheduleLabel",
+        "entryFee",
+        "prizePool",
+        "perKillReward",
+        "maxPlayers",
+        "joinedCount",
+        "status",
+        "roomPublished",
+        "rulesSummary",
+        "bannerKey",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "TournamentParticipant": {
+      "title": "TournamentParticipant",
+      "description": "Joined player registration proof for a specific tournament.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "tournamentId": { "type": "string" },
+        "playerName": { "type": "string" },
+        "freeFireId": { "type": "string" },
+        "teamTag": { "type": "string" },
+        "joinedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "tournamentId", "playerName", "freeFireId", "joinedAt"]
+    },
+    "RoomCredentials": {
+      "title": "RoomCredentials",
+      "description": "Protected Room ID and Password visible exclusively to joined players and admins.",
+      "type": "object",
+      "properties": {
+        "tournamentId": { "type": "string" },
+        "roomId": { "type": "string" },
+        "roomPassword": { "type": "string" },
+        "serverRegion": { "type": "string" },
+        "matchNote": { "type": "string" },
+        "publishedAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "tournamentId",
+        "roomId",
+        "roomPassword",
+        "serverRegion",
+        "matchNote",
+        "publishedAt",
+        "updatedAt"
+      ]
+    },
+    "JoinedTournamentRecord": {
+      "title": "JoinedTournamentRecord",
+      "description": "Player-scoped index of joined and historical Free Fire tournaments.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "tournamentId": { "type": "string" },
+        "tournamentTitle": { "type": "string" },
+        "gameMode": { "type": "string", "enum": ["SOLO", "DUO", "SQUAD", "LONE_WOLF", "1V1_MATCH"] },
+        "scheduleLabel": { "type": "string" },
+        "mapName": { "type": "string" },
+        "entryFee": { "type": "integer" },
+        "prizePool": { "type": "integer" },
+        "status": { "type": "string", "enum": ["JOINED", "COMPLETED", "RESULT_PENDING"] },
+        "placementLabel": { "type": "string" },
+        "killsLogged": { "type": "integer" },
+        "joinedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId",
+        "tournamentId",
+        "tournamentTitle",
+        "gameMode",
+        "scheduleLabel",
+        "mapName",
+        "entryFee",
+        "prizePool",
+        "status",
+        "placementLabel",
+        "killsLogged",
+        "joinedAt"
+      ]
+    },
+    "LeaderboardEntry": {
+      "title": "LeaderboardEntry",
+      "description": "Ranked Free Fire esports player standing.",
+      "type": "object",
+      "properties": {
+        "playerId": { "type": "string" },
+        "playerName": { "type": "string" },
+        "freeFireId": { "type": "string" },
+        "rank": { "type": "integer" },
+        "kills": { "type": "integer" },
+        "wins": { "type": "integer" },
+        "matchesPlayed": { "type": "integer" },
+        "points": { "type": "integer" },
+        "lastMatchResult": { "type": "string" },
+        "seasonLabel": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "playerId",
+        "playerName",
+        "freeFireId",
+        "rank",
+        "kills",
+        "wins",
+        "matchesPlayed",
+        "points",
+        "lastMatchResult",
+        "seasonLabel",
+        "updatedAt"
+      ]
+    },
+    "WalletTransaction": {
+      "title": "WalletTransaction",
+      "description": "Player wallet ledger entry for deposits, withdrawals, refunds, and match prizes.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "type": { "type": "string", "enum": ["DEPOSIT", "WITHDRAWAL", "REFUND", "ENTRY_FEE", "WINNING"] },
+        "amount": { "type": "integer" },
+        "status": { "type": "string", "enum": ["Pending", "Completed", "Rejected"] },
+        "referenceCode": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "type", "amount", "status", "referenceCode", "createdAt"]
+    },
+    "AppNotification": {
+      "title": "AppNotification",
+      "description": "Player-scoped notification for tournament updates, room credentials, reminders, and results.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "category": { "type": "string", "enum": ["TOURNAMENT_UPDATE", "ROOM_PUBLISHED", "MATCH_REMINDER", "RESULT_ANNOUNCED"] },
+        "tournamentId": { "type": "string" },
+        "readStatus": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId",
+        "title",
+        "message",
+        "category",
+        "tournamentId",
+        "readStatus",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SupportTicket": {
+      "title": "SupportTicket",
+      "description": "Player complaint or match support ticket.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "subject": { "type": "string" },
+        "category": { "type": "string", "enum": ["COMPLAINT", "MATCH_SUPPORT", "ROOM_ISSUE", "GENERAL"] },
+        "tournamentName": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["OPEN", "IN_REVIEW", "RESOLVED"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId",
+        "subject",
+        "category",
+        "tournamentName",
+        "description",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SupportMessage": {
+      "title": "SupportMessage",
+      "description": "Chat message inside a player support ticket.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "senderRole": { "type": "string", "enum": ["PLAYER", "SUPPORT", "SYSTEM"] },
+        "senderName": { "type": "string" },
+        "body": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "senderRole", "senderName", "body", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/app_config/{configId}": {
+      "schema": { "$ref": "#/entities/PaymentConfig" },
+      "description": "Admin-managed UPI payment settings."
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/PlayerProfile" },
+      "description": "Owner-only player profile, IGN, Free Fire UID, and wallet balance."
+    },
+    "/users/{userId}/deposit_requests/{requestId}": {
+      "schema": { "$ref": "#/entities/DepositRequest" },
+      "description": "Player deposit requests with UTR and screenshot proof."
+    },
+    "/users/{userId}/withdrawal_requests/{requestId}": {
+      "schema": { "$ref": "#/entities/WithdrawalRequest" },
+      "description": "Player withdrawal requests with locked amount and auto-refund tracking."
+    },
+    "/tournaments/{tournamentId}": {
+      "schema": { "$ref": "#/entities/Tournament" },
+      "description": "Free Fire tournaments published by Admin Panel."
+    },
+    "/tournaments/{tournamentId}/participants/{participantId}": {
+      "schema": { "$ref": "#/entities/TournamentParticipant" },
+      "description": "Joined player proof gating room_credentials access."
+    },
+    "/tournaments/{tournamentId}/room_credentials/{docId}": {
+      "schema": { "$ref": "#/entities/RoomCredentials" },
+      "description": "Protected Room ID and Password published by Admin Panel."
+    },
+    "/users/{userId}/joined_tournaments/{tournamentId}": {
+      "schema": { "$ref": "#/entities/JoinedTournamentRecord" },
+      "description": "Player-scoped list of joined tournaments and match history."
+    },
+    "/leaderboard/{entryId}": {
+      "schema": { "$ref": "#/entities/LeaderboardEntry" },
+      "description": "Season leaderboard rankings, kills, wins, and match results."
+    },
+    "/users/{userId}/transactions/{transactionId}": {
+      "schema": { "$ref": "#/entities/WalletTransaction" },
+      "description": "Player wallet ledger history."
+    },
+    "/users/{userId}/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/AppNotification" },
+      "description": "Player tournament, room, reminder, and result notifications."
+    },
+    "/users/{userId}/tickets/{ticketId}": {
+      "schema": { "$ref": "#/entities/SupportTicket" },
+      "description": "Player support tickets and complaints."
+    },
+    "/users/{userId}/tickets/{ticketId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/SupportMessage" },
+      "description": "Support live chat messages for a specific ticket."
+    }
+  }
+}

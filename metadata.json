@@ -1,0 +1,6 @@
+{
+  "name": "LOBBIX",
+  "description": "Free Fire esports tournament player app featuring live room credentials, leaderboards, player profiles, wallet UI, and match support.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
